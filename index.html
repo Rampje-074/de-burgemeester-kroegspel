@@ -487,7 +487,7 @@ html{font-size:16px}body{line-height:1.45}.app{width:min(590px,100%)}
 @media(max-width:370px){.length-options{grid-template-columns:1fr}.length{min-height:74px}.category-picker>div{grid-template-columns:1fr}.category:last-child{grid-column:auto}.overview-grid{grid-template-columns:1fr}.overview-wide{grid-column:auto}}
 `;
 document.head.appendChild(finalReadability);
-const APP_VERSION='1.2';
+const APP_VERSION='1.3';
 const installPanel=document.createElement('div');
 installPanel.className='install-panel';
 installPanel.innerHTML='<span class="install-symbol">▣</span><span><strong>Speel als een echte app</strong><small>Zet het spel op je beginscherm voor snel starten.</small></span><button type="button" id="installApp">Installeer</button>';
@@ -594,7 +594,7 @@ async function createResultCanvas(){
  context.textAlign='center';context.fillStyle='#e6bd82';context.font='800 20px Arial';context.fillText('AAN TAFEL',540,905);context.fillStyle='#fff8ef';context.font='700 32px Georgia';canvasLines(context,players.slice(0,8).join('  •  ')+(players.length>8?`  •  +${players.length-8}`:''),540,954,870,43,3);
  context.fillStyle='rgba(255,250,241,.08)';roundedCanvasRect(context,90,1080,900,122,20);context.fill();context.fillStyle='#f3d4a1';context.font='italic 700 31px Georgia';canvasLines(context,'“Waar elke ronde een goed verhaal wordt.”',540,1132,820,42,2);
  if(playMode==='teams'){context.fillStyle='#e7b66f';context.font='800 23px Arial';context.fillText(`TEAM GOUD ${teamScores[0]}  —  ${teamScores[1]} TEAM BORDEAUX`,540,1244)}
- context.fillStyle='#caa473';context.font='700 18px Arial';context.fillText('eetcafedeburgemeester.nl  •  Versie 1.2',540,1282);return canvas;
+ context.fillStyle='#caa473';context.font='700 18px Arial';context.fillText('eetcafedeburgemeester.nl  •  Versie 1.3',540,1282);return canvas;
 }
 function canvasToBlob(canvas){return new Promise((resolve,reject)=>canvas.toBlob(blob=>blob?resolve(blob):reject(new Error('Afbeelding kon niet worden gemaakt.')),'image/png',.95))}
 async function buildResultPreview(){
@@ -624,6 +624,6 @@ atmosphereStyle.textContent=`
 `;
 document.head.appendChild(atmosphereStyle);
 const timerFixStyle=document.createElement('style');
-timerFixStyle.textContent=`.timer-ring{position:relative;display:flex;flex:0 0 72px;flex-direction:column;align-items:center;justify-content:center;width:72px;height:72px;padding:0;overflow:hidden;line-height:1}.timer-ring:before{content:"";position:absolute;z-index:0;inset:6px;background:#211c18;border-radius:50%}.timer-ring strong,.timer-ring small{position:relative;z-index:1;display:block}.timer-ring strong{font-size:28px;line-height:.9;font-variant-numeric:tabular-nums}.timer-ring small{margin-top:5px;font-size:8px;line-height:1;letter-spacing:.5px}`;
+timerFixStyle.textContent=`.timer-ring{position:relative;display:block;flex:0 0 82px;width:82px;height:82px;padding:0;overflow:hidden;box-sizing:border-box;line-height:1;isolation:isolate}.timer-ring:before{content:"";position:absolute;z-index:0;inset:7px;background:#211c18;border-radius:50%}.timer-ring strong{position:absolute;z-index:2;left:50%;top:43%;display:block;width:100%;transform:translate(-50%,-50%);font-size:32px;line-height:1;text-align:center;font-variant-numeric:tabular-nums}.timer-ring small{position:absolute;z-index:2;left:50%;top:67%;display:block;transform:translate(-50%,-50%);font-size:8px;line-height:1;letter-spacing:1px;text-align:center;text-transform:uppercase}`;
 document.head.appendChild(timerFixStyle);
 </script></body></html>
