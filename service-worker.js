@@ -1,4 +1,4 @@
-const CACHE_NAME = 'burgemeester-spel-v1-2';
+const CACHE_NAME = 'burgemeester-spel-v1-3';
 const CORE_FILES = ['./', './index.html', './manifest.webmanifest', './app-icon.svg', './clipboard.png', './clipboard.jpeg'];
 
 self.addEventListener('install', event => {
