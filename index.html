@@ -342,11 +342,28 @@ function cardCategory(card){const type=(card.type||'').toLowerCase();if(/vraag|e
 function normalizeCard(card){const result=Array.isArray(card)?{type:card[0],emoji:card[1],text:card[2],rule:card[3]}:{...card};if(result.birthday)result.text=result.text.replaceAll('[jarige]',birthdayName||'de jarige');result.category=result.category||cardCategory(result);return result}
 function refillDeck(){let pool=cards.map(normalizeCard);pool.push(...extraDecks.timed,...extraDecks.rules,...extraDecks.secrets,...extraDecks.photos);if(difficulty==='pittig'||difficulty==='chaos')pool.push(...extraDecks.pittig);if(difficulty==='chaos')pool.push(...extraDecks.chaos);if(birthdayMode)pool.push(...extraDecks.birthday);pool=pool.map(normalizeCard).filter(card=>selectedCategories.has(card.category)||card.birthday);if(!pool.length)pool=extraDecks.specials.map(normalizeCard);drawPile=shuffle(pool)}
 function drawSmartCard(){if(count>0&&count%15===0)return{type:'Burgemeesterspauze',emoji:'💧',text:'Tijd voor water, een snack en een goed gesprek.',rule:'Neem rustig twee minuten pauze. Alcoholvrij telt natuurlijk ook mee.',kind:'break'};if(Math.random()<.1)return normalizeCard(extraDecks.specials[Math.floor(Math.random()*extraDecks.specials.length)]);if(!drawPile.length)refillDeck();return normalizeCard(drawPile.pop())}
-function playSfx(kind='card'){if(!sfxOn)return;try{const AudioContext=window.AudioContext||window.webkitAudioContext;if(!AudioContext)return;playSfx.context??=new AudioContext();const ctx=playSfx.context,osc=ctx.createOscillator(),gain=ctx.createGain();osc.type=kind==='win'?'triangle':'sine';osc.frequency.setValueAtTime(kind==='timer'?520:kind==='win'?660:310,ctx.currentTime);if(kind==='card')osc.frequency.exponentialRampToValueAtTime(470,ctx.currentTime+.08);gain.gain.setValueAtTime(.0001,ctx.currentTime);gain.gain.exponentialRampToValueAtTime(.045,ctx.currentTime+.012);gain.gain.exponentialRampToValueAtTime(.0001,ctx.currentTime+.13);osc.connect(gain).connect(ctx.destination);osc.start();osc.stop(ctx.currentTime+.14)}catch(error){/* Het spel blijft zonder audio werken. */}}
+function playSfx(kind='card'){
+ if(!sfxOn)return;
+ try{
+  const AudioContext=window.AudioContext||window.webkitAudioContext;if(!AudioContext)return;
+  playSfx.context??=new AudioContext();const ctx=playSfx.context;if(ctx.state==='suspended')ctx.resume();
+  const sounds={
+   card:[[320,0,.1,.032,'sine'],[470,.06,.09,.024,'sine']],
+   win:[[660,0,.13,.05,'triangle'],[880,.1,.18,.04,'triangle']],
+   timerStart:[[392,0,.12,.045,'triangle'],[523,.13,.13,.055,'triangle'],[659,.27,.2,.06,'triangle']],
+   tick:[[285,0,.075,.042,'triangle']],
+   tickUrgent:[[440,0,.09,.07,'square'],[660,.055,.07,.032,'sine']],
+   timerEnd:[[523,0,.16,.07,'triangle'],[659,.12,.18,.075,'triangle'],[784,.25,.24,.08,'triangle'],[1047,.42,.3,.055,'sine']],
+   confetti:[[523,0,.12,.045,'triangle'],[659,.05,.15,.04,'triangle'],[784,.11,.19,.04,'triangle'],[1047,.19,.28,.045,'sine']]
+  };
+  const notes=sounds[kind]||sounds.card;
+  notes.forEach(([frequency,offset,duration,volume,type])=>{const osc=ctx.createOscillator(),gain=ctx.createGain(),start=ctx.currentTime+offset;osc.type=type;osc.frequency.setValueAtTime(frequency,start);gain.gain.setValueAtTime(.0001,start);gain.gain.exponentialRampToValueAtTime(volume,start+.01);gain.gain.exponentialRampToValueAtTime(.0001,start+duration);osc.connect(gain).connect(ctx.destination);osc.start(start);osc.stop(start+duration+.03)});
+ }catch(error){/* Het spel blijft zonder audio werken. */}
+}
 let timerDuration=0,timerRemaining=0;
 function clearCardTimer(){clearInterval(timerId);timerId=null;timerPanel.classList.remove('urgent');document.getElementById('timerStart').textContent='Start timer'}
 function prepareTimer(duration){clearCardTimer();timerDuration=duration;timerRemaining=duration;document.getElementById('timerValue').textContent=duration;document.getElementById('timerCaption').textContent=`${duration} seconden`;document.getElementById('timerStart').textContent=`Start ${duration} sec`;timerPanel.style.setProperty('--time-progress','100%');timerPanel.classList.remove('hidden')}
-function startTimer(){if(timerId)return;playSfx('timer');hapticFeedback('timerStart');document.getElementById('timerStart').textContent='Loopt…';timerId=setInterval(()=>{timerRemaining--;document.getElementById('timerValue').textContent=Math.max(0,timerRemaining);timerPanel.style.setProperty('--time-progress',`${Math.max(0,timerRemaining/timerDuration*100)}%`);timerPanel.classList.toggle('urgent',timerRemaining<=5);if(timerRemaining>0&&timerRemaining<=3)hapticFeedback('tick');if(timerRemaining<=0){clearCardTimer();document.getElementById('timerStart').textContent='Tijd om!';playSfx('win');hapticFeedback('timerEnd');celebrateMoment('timer')}},1000)}
+function startTimer(){if(timerId)return;playSfx('timerStart');hapticFeedback('timerStart');document.getElementById('timerStart').textContent='Loopt…';timerId=setInterval(()=>{timerRemaining--;document.getElementById('timerValue').textContent=Math.max(0,timerRemaining);timerPanel.style.setProperty('--time-progress',`${Math.max(0,timerRemaining/timerDuration*100)}%`);timerPanel.classList.toggle('urgent',timerRemaining<=5);if(timerRemaining>0&&timerRemaining<=10){const urgent=timerRemaining<=3;playSfx(urgent?'tickUrgent':'tick');hapticFeedback(urgent?'tickUrgent':'tick')}if(timerRemaining<=0){clearCardTimer();document.getElementById('timerStart').textContent='Tijd om!';playSfx('timerEnd');hapticFeedback('timerEnd');celebrateMoment('timer')}},1000)}
 function updateRuleBar(){document.getElementById('activeRuleText').textContent=activeRule;ruleBar.classList.toggle('hidden',!activeRule)}
 function updateTeams(){teamBoard.classList.toggle('hidden',playMode!=='teams');document.getElementById('team0Score').textContent=teamScores[0];document.getElementById('team1Score').textContent=teamScores[1];const currentIndex=players.length?turn%players.length:0;teamBoard.querySelectorAll('[data-team]').forEach(button=>button.classList.toggle('current-team',Number(button.dataset.team)===currentIndex%2))}
 function updateRoster(){const list=playerRoster.querySelector('.roster-list'),currentIndex=players.length?turn%players.length:-1;list.replaceChildren(...players.map((name,index)=>{const chip=document.createElement('span');chip.className='roster-name'+(index===currentIndex?' current':'');chip.textContent=playMode==='teams'?`${index%2===0?'G':'B'} · ${name}`:name;return chip}));updateTeams()}
@@ -487,7 +504,7 @@ html{font-size:16px}body{line-height:1.45}.app{width:min(590px,100%)}
 @media(max-width:370px){.length-options{grid-template-columns:1fr}.length{min-height:74px}.category-picker>div{grid-template-columns:1fr}.category:last-child{grid-column:auto}.overview-grid{grid-template-columns:1fr}.overview-wide{grid-column:auto}}
 `;
 document.head.appendChild(finalReadability);
-const APP_VERSION='1.3';
+const APP_VERSION='1.4';
 const installPanel=document.createElement('div');
 installPanel.className='install-panel';
 installPanel.innerHTML='<span class="install-symbol">▣</span><span><strong>Speel als een echte app</strong><small>Zet het spel op je beginscherm voor snel starten.</small></span><button type="button" id="installApp">Installeer</button>';
@@ -539,14 +556,18 @@ const hapticButton=document.createElement('button');
 hapticButton.type='button';
 hapticButton.id='hapticToggle';
 hapticButton.setAttribute('aria-pressed','true');
-hapticButton.textContent='📳 Trillen aan';
+hapticButton.textContent='📳 Trillen: aan';
 document.getElementById('wakeToggle').insertAdjacentElement('beforebegin',hapticButton);
+function markVibrationUnavailable(){hapticsOn=false;hapticButton.setAttribute('aria-pressed','false');hapticButton.classList.add('unsupported');hapticButton.textContent='📱 Geen trilfunctie'}
 function hapticFeedback(kind='card'){
- if(!hapticsOn||!navigator.vibrate)return;
- const patterns={card:[16],timerStart:[24],tick:[18],timerEnd:[45,45,90],duel:[30,35,55],finish:[45,40,65,40,110]};
- try{navigator.vibrate(patterns[kind]||patterns.card)}catch(error){/* Trillen is niet op iedere telefoon beschikbaar. */}
+ if(!hapticsOn)return false;
+ if(typeof navigator.vibrate!=='function'){markVibrationUnavailable();return false}
+ const patterns={card:[24],test:[120,70,160],timerStart:[100,60,150],tick:[35],tickUrgent:[85],timerEnd:[140,70,190,70,280],duel:[80,45,120],finish:[120,60,180,60,260]};
+ try{const accepted=navigator.vibrate(patterns[kind]||patterns.card);if(accepted===false&&(kind==='timerStart'||kind==='test'))markVibrationUnavailable();return accepted!==false}catch(error){markVibrationUnavailable();return false}
 }
+if(typeof navigator.vibrate!=='function')markVibrationUnavailable();
 function celebrateMoment(kind='card'){
+ if(kind==='duel')playSfx('confetti');else if(kind==='finish')setTimeout(()=>playSfx('confetti'),180);
  if(window.matchMedia('(prefers-reduced-motion: reduce)').matches)return;
  const layer=document.createElement('div'),colors=['#f0c77d','#a75336','#f7eee2','#6b765f','#d98b51'];
  layer.className='confetti-layer';
@@ -594,7 +615,7 @@ async function createResultCanvas(){
  context.textAlign='center';context.fillStyle='#e6bd82';context.font='800 20px Arial';context.fillText('AAN TAFEL',540,905);context.fillStyle='#fff8ef';context.font='700 32px Georgia';canvasLines(context,players.slice(0,8).join('  •  ')+(players.length>8?`  •  +${players.length-8}`:''),540,954,870,43,3);
  context.fillStyle='rgba(255,250,241,.08)';roundedCanvasRect(context,90,1080,900,122,20);context.fill();context.fillStyle='#f3d4a1';context.font='italic 700 31px Georgia';canvasLines(context,'“Waar elke ronde een goed verhaal wordt.”',540,1132,820,42,2);
  if(playMode==='teams'){context.fillStyle='#e7b66f';context.font='800 23px Arial';context.fillText(`TEAM GOUD ${teamScores[0]}  —  ${teamScores[1]} TEAM BORDEAUX`,540,1244)}
- context.fillStyle='#caa473';context.font='700 18px Arial';context.fillText('eetcafedeburgemeester.nl  •  Versie 1.3',540,1282);return canvas;
+ context.fillStyle='#caa473';context.font='700 18px Arial';context.fillText('eetcafedeburgemeester.nl  •  Versie 1.4',540,1282);return canvas;
 }
 function canvasToBlob(canvas){return new Promise((resolve,reject)=>canvas.toBlob(blob=>blob?resolve(blob):reject(new Error('Afbeelding kon niet worden gemaakt.')),'image/png',.95))}
 async function buildResultPreview(){
@@ -610,7 +631,7 @@ async function shareEndResult(){
   const link=document.createElement('a');link.href=resultImageUrl;link.download=file.name;document.body.appendChild(link);link.click();link.remove();status.textContent='Afbeelding opgeslagen. Deel hem nu in WhatsApp.';
  }catch(error){if(error.name!=='AbortError')status.textContent='Delen lukte niet. Probeer het nog eens.'}
 }
-hapticButton.addEventListener('click',()=>{hapticsOn=!hapticsOn;hapticButton.setAttribute('aria-pressed',String(hapticsOn));hapticButton.textContent=hapticsOn?'📳 Trillen aan':'▱ Trillen uit';if(hapticsOn)hapticFeedback('timerStart')});
+hapticButton.addEventListener('click',()=>{if(typeof navigator.vibrate!=='function'){markVibrationUnavailable();return}hapticsOn=!hapticsOn;hapticButton.classList.remove('unsupported');hapticButton.setAttribute('aria-pressed',String(hapticsOn));hapticButton.textContent=hapticsOn?'📳 Trillen: aan':'▱ Trillen: uit';if(hapticsOn)hapticFeedback('test');else navigator.vibrate(0)});
 document.getElementById('shareResult').addEventListener('click',shareEndResult);
 teamBoard.querySelectorAll('[data-team]').forEach(button=>button.addEventListener('click',()=>{hapticFeedback('duel');celebrateMoment('duel')}));
 el.next.addEventListener('click',()=>{if(currentCard&&currentCard.category==='duels'){hapticFeedback('duel');celebrateMoment('duel')}},{capture:true});
